@@ -36,6 +36,15 @@ body {
 
 }
 
+button#clearButton {
+  background-color: red;
+  cursor: pointer;
+  display: block;
+  font-size: 1rem;
+  margin: 20px auto;
+  padding: 10px 20px; 
+}
+
 
 h1 {
   font-size: 3.2em;
