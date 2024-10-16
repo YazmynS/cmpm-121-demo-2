@@ -37,16 +37,36 @@ body {
 
 }
 
+#buttonContainer {
+  display: flex;
+  justify-content: center;  /* Center the buttons horizontally */
+  gap: 10px;  /* Add some space between buttons */
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+}
+
 button#clearButton {
   background-color: red;
   box-shadow: 0 4px 12px #3f0101;
-  cursor: pointer;
-  display: block;
-  font-size: 1rem;
   margin: 20px auto;
-  padding: 10px 20px; 
 }
-
+button#undoButton {
+  background-color: #ffbe0b;
+  box-shadow: 0 4px 12px #525301; 
+  margin: 20px auto;
+}
+button#redoButton {
+  background-color: rgb(6, 136, 6);
+  box-shadow: 0 4px 12px #032c05;
+  margin: 20px auto;
+}
 
 h1 {
   font-size: 3.2em;
