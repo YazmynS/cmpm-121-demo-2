@@ -26,9 +26,15 @@ app.appendChild(titleElement);
 app.appendChild(canvasElement);
 app.appendChild(clearButton);
 
+// Get the canvas rendering context
 const render = canvasElement.getContext("2d")!;
 let drawing = false;
 
+//Track all the lines drawn
+const lines: {x: number, y: number}[][] = [];
+const currentLine: {x: number, y: number}[] = [];
+
+//Handle Drawing Events
 canvasElement.addEventListener("mousedown", (event) => {
   drawing = true;
   render.beginPath();
@@ -41,6 +47,26 @@ canvasElement.addEventListener("mousemove", (event) => {
     render.stroke();
   }
 });
+
+canvasElement.addEventListener("mouseup", () => {
+    if (drawing) {
+      drawing = false;
+      lines.push(currentLine);  // Push stroke to strokes array
+      canvasElement.dispatchEvent(new Event("drawing-changed")); 
+    }
+  });
+  
+  // Redraw canvas
+  canvasElement.addEventListener("drawing-changed", () => {
+    lines.forEach((line) => {
+        render.beginPath();
+        render.moveTo(line[0].x, line[0].y);
+        line.forEach((point) => {
+            render.lineTo(point.x, point.y);
+        });
+        render.stroke();
+    });
+  });
 
 clearButton.addEventListener("click", () => {
   render.clearRect(0, 0, canvasElement.width, canvasElement.height);

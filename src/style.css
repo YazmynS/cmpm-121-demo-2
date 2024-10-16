@@ -33,11 +33,13 @@ body {
 #gameCanvas {
   border: 5px solid #000;
   border-radius: 10px; 
+  box-shadow: 0 4px 12px #000;
 
 }
 
 button#clearButton {
   background-color: red;
+  box-shadow: 0 4px 12px #3f0101;
   cursor: pointer;
   display: block;
   font-size: 1rem;
