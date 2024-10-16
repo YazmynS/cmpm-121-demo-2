@@ -3,8 +3,6 @@ import "./style.css";
 const APP_NAME = "Draw";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-document.title = APP_NAME;
-
 // Set the document's title
 document.title = APP_NAME;
 
@@ -18,6 +16,6 @@ canvasElement.id = "gameCanvas";
 canvasElement.width = 256;
 canvasElement.height = 256;
 
-// Append both elements to the app div
+// Append both elements
 app.appendChild(titleElement);
 app.appendChild(canvasElement);

@@ -33,6 +33,7 @@ body {
 #gameCanvas {
   border: 5px solid #000;
   border-radius: 10px; 
+
 }
 
 
@@ -98,10 +99,4 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-  /* Target the canvas using its ID for maximum specificity */
-/* Target the canvas by its ID */
-
-
-
-  
-}
+ }
