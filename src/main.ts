@@ -93,47 +93,87 @@ class MarkerLine {
   }
 }
 
+class ToolPreview {
+  private x: number;
+  private y: number;
+  private lineWidth: number;
+
+  constructor(x: number, y: number, lineWidth: number) {
+    this.x = x;
+    this.y = y;
+    this.lineWidth = lineWidth;
+  }
+
+  updatePosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.lineWidth / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = "#ffffff"; // White outline for the preview
+    ctx.lineWidth = 1; // The outline for the circle
+    ctx.stroke();
+  }
+}
+
 //Track all the lines drawn
+// Global state
 let lines: MarkerLine[] = [];
-let currentLine: MarkerLine | null = null;
+let currentLine: MarkerLine | null = null;  // Current line being drawn
 let redo: MarkerLine[] = [];
+let toolPreview: ToolPreview | null = null;  // Tool preview object
 
-
-//Handle Drawing Events
+// Handle mousedown event to start drawing
 canvasElement.addEventListener("mousedown", (event) => {
   drawing = true;
+  toolPreview = null;  // Hide the tool preview when drawing starts
+  // Initialize the current line with the starting position and current line width
   currentLine = new MarkerLine(event.offsetX, event.offsetY, currentLineWidth);
 });
 
+// Handle mousemove event to continue drawing
 canvasElement.addEventListener("mousemove", (event) => {
   if (drawing && currentLine) {
+    // Extend the current line as the mouse moves
     currentLine.drag(event.offsetX, event.offsetY);
     canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger live redraw
-  }
-});
-  
-
-  canvasElement.addEventListener("mouseup", () => {
-    if (drawing && currentLine) {
-      drawing = false;
-      lines.push(currentLine); // Add current line to lines stack
-      currentLine = null;
-      redo = []; // Clear redo stack
-      canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger full redraw
+  } else if (!drawing) {
+    // If not drawing, update the tool preview
+    if (!toolPreview) {
+      toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth);
+    } else {
+      toolPreview.updatePosition(event.offsetX, event.offsetY);
     }
-  });
-  
-// Redraw canvas
-canvasElement.addEventListener("drawing-changed", () => {
-  render.clearRect(0, 0, canvasElement.width, canvasElement.height); // Clear the canvas
-  lines.forEach((line) => {
-    line.display(render); // Display each line on the canvas
-  });
-  if (currentLine) {
-    currentLine.display(render); // Display the current line during drawing
+    canvasElement.dispatchEvent(new Event("tool-moved"));
   }
 });
-  
+
+// Handle mouseup event to complete drawing
+canvasElement.addEventListener("mouseup", () => {
+  if (drawing && currentLine) {
+    drawing = false;
+    // Push the current line to the lines array when drawing is finished
+    lines.push(currentLine);
+    currentLine = null;  // Reset currentLine after storing it in lines
+    redo = [];  // Clear the redo stack when a new line is drawn
+    canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger full redraw
+  }
+});
+
+// Redraw canvas 
+canvasElement.addEventListener("drawing-changed", () => {
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear canvas
+  lines.forEach((line) => {
+    line.display(render);  // Redraw each line on the canvas
+  });
+
+  // Draw tool preview if not drawing
+  if (!drawing && toolPreview) {
+    toolPreview.draw(render);
+  }
+});
   
 //Handle Clear Buttton Functionality
 clearButton.addEventListener("click", () => {
@@ -160,6 +200,19 @@ undoButton.addEventListener("click", () => {
       canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
     }
   });
+
+  // Redraw canvas when drawing or undo/redo is triggered
+canvasElement.addEventListener("drawing-changed", () => {
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
+  lines.forEach((line) => {
+    line.display(render);  // Redraw each line on the canvas
+  });
+
+  // Draw tool preview if not drawing
+  if (!drawing && toolPreview) {
+    toolPreview.draw(render);
+  }
+});
 
   // Handle Thin Button Functionality
 thinMarkerButton.addEventListener("click", () => {
