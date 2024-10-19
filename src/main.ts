@@ -35,23 +35,42 @@ redoButton.id = "redoButton";
 const buttonContainer = document.createElement("div");
 buttonContainer.id = "buttonContainer";
 
+// Create Thin Button
+const thinMarkerButton = document.createElement("button");
+thinMarkerButton.textContent = "Thin Marker";
+thinMarkerButton.id = "thinButton";
+
+//Create Thick Button
+const thickMarkerButton = document.createElement("button");
+thickMarkerButton.textContent = "Thick Marker";
+thickMarkerButton.id = "thickButton";
+
 // Append elements
 app.appendChild(titleElement);
 app.appendChild(canvasElement);
 buttonContainer.appendChild(clearButton);
 buttonContainer.appendChild(undoButton);
 buttonContainer.appendChild(redoButton);
+
+buttonContainer.appendChild(thinMarkerButton);
+buttonContainer.appendChild(thickMarkerButton);
+
 app.appendChild(buttonContainer);
+
 
 // Get the canvas rendering context
 const render = canvasElement.getContext("2d")!;
 let drawing = false;
+let currentLineWidth = 2; // Default to "thin" marker
+
 
 class MarkerLine {
   private points: { x: number; y: number }[] = [];
+  private lineWidth: number;
 
-  constructor(startX: number, startY: number) {
+  constructor(startX: number, startY: number, lineWidth: number) {
     this.points.push({ x: startX, y: startY });
+    this.lineWidth = lineWidth;
   }
 
   // Extend the line as the mouse is dragged
@@ -62,6 +81,7 @@ class MarkerLine {
   // Display the line on the canvas
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length < 2) return;
+    ctx.lineWidth = this.lineWidth;
     ctx.beginPath();
     ctx.moveTo(this.points[0].x, this.points[0].y);
 
@@ -82,7 +102,7 @@ let redo: MarkerLine[] = [];
 //Handle Drawing Events
 canvasElement.addEventListener("mousedown", (event) => {
   drawing = true;
-  currentLine = new MarkerLine(event.offsetX, event.offsetY);
+  currentLine = new MarkerLine(event.offsetX, event.offsetY, currentLineWidth);
 });
 
 canvasElement.addEventListener("mousemove", (event) => {
@@ -140,3 +160,18 @@ undoButton.addEventListener("click", () => {
       canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
     }
   });
+
+  // Handle Thin Button Functionality
+thinMarkerButton.addEventListener("click", () => {
+  currentLineWidth = 1; // Thin marker is 2px wide
+  thinMarkerButton.classList.add("selectedTool");
+  thickMarkerButton.classList.remove("selectedTool");
+});
+
+// Handle Thick Button Functionality
+thickMarkerButton.addEventListener("click", () => {
+  currentLineWidth = 20; 
+  thickMarkerButton.classList.add("selectedTool");
+  thinMarkerButton.classList.remove("selectedTool");
+});
+

@@ -67,6 +67,16 @@ button#redoButton {
   box-shadow: 0 4px 12px #032c05;
   margin: 20px auto;
 }
+button#thinButton {
+  background-color: rgb(70, 70, 70);
+  box-shadow: 0 4px 12px #000700;
+  margin: 20px auto;
+}
+button#thickButton {
+  background-color: rgb(70, 70, 70);
+  box-shadow: 0 4px 12px #000700;
+  margin: 20px auto;
+}
 
 h1 {
   font-size: 3.2em;
