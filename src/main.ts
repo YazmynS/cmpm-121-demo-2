@@ -35,8 +35,6 @@ redoButton.id = "redoButton";
 const buttonContainer = document.createElement("div");
 buttonContainer.id = "buttonContainer";
 
-
-
 // Append elements
 app.appendChild(titleElement);
 app.appendChild(canvasElement);
@@ -49,52 +47,72 @@ app.appendChild(buttonContainer);
 const render = canvasElement.getContext("2d")!;
 let drawing = false;
 
+class MarkerLine {
+  private points: { x: number; y: number }[] = [];
+
+  constructor(startX: number, startY: number) {
+    this.points.push({ x: startX, y: startY });
+  }
+
+  // Extend the line as the mouse is dragged
+  drag(x: number, y: number) {
+    this.points.push({ x, y });
+  }
+
+  // Display the line on the canvas
+  display(ctx: CanvasRenderingContext2D) {
+    if (this.points.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
+    }
+
+    ctx.stroke();
+  }
+}
+
 //Track all the lines drawn
-let lines: {x: number, y: number}[][] = [];
-let currentLine: {x: number, y: number}[] = [];
-let redo: {x: number, y: number}[][] = [];
+let lines: MarkerLine[] = [];
+let currentLine: MarkerLine | null = null;
+let redo: MarkerLine[] = [];
+
 
 //Handle Drawing Events
 canvasElement.addEventListener("mousedown", (event) => {
   drawing = true;
-  currentLine =[];
-  render.beginPath();
-  render.moveTo(event.offsetX, event.offsetY);
+  currentLine = new MarkerLine(event.offsetX, event.offsetY);
 });
 
 canvasElement.addEventListener("mousemove", (event) => {
-    if (drawing) {
-      currentLine.push({x: event.offsetX, y: event.offsetY});
-      render.lineTo(event.offsetX, event.offsetY);
-      render.stroke();
-    }
-  });
+  if (drawing && currentLine) {
+    currentLine.drag(event.offsetX, event.offsetY);
+    canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger live redraw
+  }
+});
   
 
-canvasElement.addEventListener("mouseup", () => {
-    if (drawing) {
+  canvasElement.addEventListener("mouseup", () => {
+    if (drawing && currentLine) {
       drawing = false;
-      lines.push(currentLine);  // Push stroke to strokes array
-      redo = [];
-      canvasElement.dispatchEvent(new Event("drawing-changed")); 
+      lines.push(currentLine); // Add current line to lines stack
+      currentLine = null;
+      redo = []; // Clear redo stack
+      canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger full redraw
     }
-});
+  });
   
 // Redraw canvas
 canvasElement.addEventListener("drawing-changed", () => {
-    render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
-  
-    lines.forEach((line) => {
-      render.beginPath();
-      render.moveTo(line[0].x, line[0].y);
-      
-      line.forEach((point) => {
-        render.lineTo(point.x, point.y);
-      });
-      
-      render.stroke();
-    });
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height); // Clear the canvas
+  lines.forEach((line) => {
+    line.display(render); // Display each line on the canvas
   });
+  if (currentLine) {
+    currentLine.display(render); // Display the current line during drawing
+  }
+});
   
   
 //Handle Clear Buttton Functionality
