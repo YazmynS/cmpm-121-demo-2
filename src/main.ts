@@ -90,14 +90,25 @@ function redraw(ctx: CanvasRenderingContext2D) {
 
 function createButtonContainer() {
   const container = createElement("div", { id: "buttonContainer" });
-  container.append(
-    createButton("Clear", clearCanvas),
-    createButton("Undo", undo),
-    createButton("Redo", redoAction),
-    createButton("Export", exportCanvas),
-    createButton("Thin Marker", () => setMarkerWidth(1), "thinButton"),
-    createButton("Thick Marker", () => setMarkerWidth(20), "thickButton")
+
+  // First group of buttons (Clear, Undo, Redo)
+  const primaryButtonContainer = createElement("div", { id: "primaryButtonContainer" });
+  primaryButtonContainer.append(
+    createButton("Clear", clearCanvas, "clearButton"),
+    createButton("Undo", undo, "undoButton"),
+    createButton("Redo", redoAction, "redoButton")
   );
+
+  // Second group of buttons (Export, Thin, Thick)
+  const secondaryButtonContainer = createElement("div", { id: "secondaryButtonContainer" });
+  secondaryButtonContainer.append(
+    createButton("Export", exportCanvas, "exportButton"),
+    createButton("Thin Marker", () => setMarkerWidth(1), "thinButton"),
+    createButton("Thick Marker", () => setMarkerWidth(10), "thickButton")
+  );
+
+  // Append both groups to the main container
+  container.append(primaryButtonContainer, secondaryButtonContainer);
   return container;
 }
 
@@ -106,7 +117,7 @@ function createStickerContainer() {
   STICKERS.forEach(sticker => {
     container.append(createButton(sticker.emoji, () => selectSticker(sticker.emoji), sticker.id));
   });
-  container.append(createButton("Add Custom Sticker", addCustomSticker));
+  container.append(createButton("Add Custom Sticker", addCustomSticker, "customButton"));
   return container;
 }
 
@@ -201,6 +212,7 @@ class MarkerLine {
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length < 2) return;
     ctx.lineWidth = this.lineWidth;
+    ctx.strokeStyle = "#000000";
     ctx.beginPath();
     ctx.moveTo(this.points[0].x, this.points[0].y);
 

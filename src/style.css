@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #95a5dd;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -39,10 +39,42 @@ body {
 
 #buttonContainer {
   display: flex;
-  justify-content: center;  /* Center the buttons horizontally */
-  gap: 10px;  /* Add some space between buttons */
-  margin-top: 20px;
+  flex-direction: column;  /* Stack groups vertically */
+  align-items: center;  /* Center the buttons horizontally */
 }
+
+#stickerContainer {
+  display: flex;
+  align-items: center;  /* Center the buttons horizontally */
+  gap: 10px;
+}
+
+#primaryButtonContainer, 
+#secondaryButtonContainer {
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* Space between buttons in each group */
+}
+
+button#bearButton{
+  background-color: #631491;
+  box-shadow: 0 4px 12px #28013f;
+}
+
+button#catButton{
+  background-color: #631491;
+  box-shadow: 0 4px 12px #28013f;
+}
+
+button#unicornButton{
+  background-color: #631491;
+  box-shadow: 0 4px 12px #28013f;
+}
+button#customButton{
+  background-color: #631491;
+  box-shadow: 0 4px 12px #28013f;
+}
+
 
 button {
   padding: 10px 20px;
@@ -75,6 +107,11 @@ button#thinButton {
 button#thickButton {
   background-color: rgb(70, 70, 70);
   box-shadow: 0 4px 12px #000700;
+  margin: 20px auto;
+}
+button#exportButton{
+  background-color: rgb(21, 30, 167);
+  box-shadow: 0 4px 12px #070224;
   margin: 20px auto;
 }
 
