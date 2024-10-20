@@ -45,19 +45,6 @@ const thickMarkerButton = document.createElement("button");
 thickMarkerButton.textContent = "Thick Marker";
 thickMarkerButton.id = "thickButton";
 
-// Create Animal Stickers
-const bearButton = document.createElement("button");
-bearButton.textContent = "🐻";  // Bear emoji
-bearButton.id = "bearButton";
-
-const catButton = document.createElement("button");
-catButton.textContent = "🐱";  // Cat emoji
-catButton.id = "catButton";
-
-const unicornButton = document.createElement("button");
-unicornButton.textContent = "🦄";  // Surprise: Unicorn emoji
-unicornButton.id = "unicornButton";
-
 // Create Stick Container
 const stickerContainer = document.createElement("div");
 stickerContainer.id = "stickerContainer";
@@ -68,25 +55,77 @@ app.appendChild(canvasElement);
 buttonContainer.appendChild(clearButton);
 buttonContainer.appendChild(undoButton);
 buttonContainer.appendChild(redoButton);
-
 buttonContainer.appendChild(thinMarkerButton);
 buttonContainer.appendChild(thickMarkerButton);
-
-// Append the sticker buttons to the sticker container
-stickerContainer.appendChild(bearButton);
-stickerContainer.appendChild(catButton);
-stickerContainer.appendChild(unicornButton);
-
 app.appendChild(buttonContainer);
 app.appendChild(stickerContainer);
 
+// Array to define available stickers (JSON-like)
+const stickers = [
+  { id: "bearButton", emoji: "🐻" },
+  { id: "catButton", emoji: "🐱" },
+  { id: "unicornButton", emoji: "🦄" }
+];
+
+// Global variables
+let drawing = false;               // Tracks if user is drawing
+let currentLine: MarkerLine | null = null;  // Current line being drawn
+let currentLineWidth = 2;          // Default to thin marker
+let currentSticker: string | null = null;   // Currently selected sticker
+let stickerPreview: StickerPreview | null = null;  // Sticker preview
+let toolPreview: ToolPreview | null = null; // Tool preview
+let lines: (MarkerLine | StickerCommand)[] = [];  // Stores all drawn lines and stickers
+let redo: (MarkerLine | StickerCommand)[] = [];   // Stores redo history
+
 // Get the canvas rendering context
 const render = canvasElement.getContext("2d")!;
-let drawing = false;
-let currentLineWidth = 2; // Default to "thin" marker
-let currentSticker: string | null = null; // To store the selected sticker
-let stickerPreview: StickerPreview | null = null; // Sticker preview object
 
+// Function to generate sticker buttons dynamically
+function createStickerButtons() {
+  stickerContainer.innerHTML = ''; // Clear existing buttons
+  stickers.forEach(sticker => {
+    const stickerButton = document.createElement("button");
+    stickerButton.textContent = sticker.emoji;
+    stickerButton.id = sticker.id;
+
+    // Add event listener for sticker selection
+    stickerButton.addEventListener("click", () => {
+      currentSticker = sticker.emoji;  // Set the current sticker to selected emoji
+      stickerPreview = new StickerPreview(0, 0, currentSticker);
+      canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
+    });
+
+    // Append each sticker button to the sticker container
+    stickerContainer.appendChild(stickerButton);
+  });
+}
+
+// Create initial sticker buttons
+createStickerButtons();
+
+// Create the custom sticker button
+const customStickerButton = document.createElement("button");
+customStickerButton.textContent = "Add Custom Sticker";
+customStickerButton.id = "customStickerButton";
+
+// Add event listener to prompt user for custom sticker
+customStickerButton.addEventListener("click", () => {
+  const customSticker = prompt("Enter a new sticker (emoji or text):", "😀");
+  
+  if (customSticker) {
+    // Add the custom sticker to the stickers array
+    const newStickerId = `sticker${stickers.length + 1}Button`;  // Generate a unique ID
+    stickers.push({ id: newStickerId, emoji: customSticker });
+
+    // Re-generate sticker buttons to include the new sticker
+    createStickerButtons();
+  }
+});
+
+// Append the custom sticker button to the sticker container
+stickerContainer.appendChild(customStickerButton);
+
+// Classes for MarkerLine, ToolPreview, StickerPreview, and StickerCommand
 class MarkerLine {
   private points: { x: number; y: number }[] = [];
   private lineWidth: number;
@@ -116,7 +155,6 @@ class MarkerLine {
   }
 }
 
-// Add the missing ToolPreview class here
 class ToolPreview {
   private x: number;
   private y: number;
@@ -142,7 +180,6 @@ class ToolPreview {
   }
 }
 
-// StickerPreview class for rendering preview of selected sticker
 class StickerPreview {
   private x: number;
   private y: number;
@@ -167,7 +204,6 @@ class StickerPreview {
   }
 }
 
-// StickerCommand class for placing stickers
 class StickerCommand {
   private x: number;
   private y: number;
@@ -191,31 +227,6 @@ class StickerCommand {
     ctx.fillText(this.sticker, this.x, this.y);
   }
 }
-
-// Global state
-let lines: (MarkerLine | StickerCommand)[] = [];
-let currentLine: MarkerLine | null = null;  // Current line being drawn
-let redo: (MarkerLine | StickerCommand)[] = [];
-let toolPreview: ToolPreview | null = null;  // Tool preview object
-
-// Handle sticker selection and fire tool-moved event for preview
-bearButton.addEventListener("click", () => {
-  currentSticker = "🐻";  // Bear emoji
-  stickerPreview = new StickerPreview(0, 0, currentSticker);
-  canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
-});
-
-catButton.addEventListener("click", () => {
-  currentSticker = "🐱";  // Cat emoji
-  stickerPreview = new StickerPreview(0, 0, currentSticker);
-  canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
-});
-
-unicornButton.addEventListener("click", () => {
-  currentSticker = "🦄";  // Unicorn emoji
-  stickerPreview = new StickerPreview(0, 0, currentSticker);
-  canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
-});
 
 // Handle mousedown event to start drawing or place sticker
 canvasElement.addEventListener("mousedown", (event) => {
@@ -241,96 +252,97 @@ canvasElement.addEventListener("mousemove", (event) => {
     currentLine.drag(event.offsetX, event.offsetY);
     canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger live redraw
   } else if (!drawing) {
-  // If not drawing, update the tool preview or sticker preview
-  if (currentSticker && stickerPreview) {
-    stickerPreview.updatePosition(event.offsetX, event.offsetY);
-    canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
-  } else if (!toolPreview) {
-    toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth);
-  } else {
-    toolPreview.updatePosition(event.offsetX, event.offsetY);
+    // If not drawing, update the tool preview or sticker preview
+    if (currentSticker && stickerPreview) {
+      stickerPreview.updatePosition(event.offsetX, event.offsetY);
+      canvasElement.dispatchEvent(new Event("tool-moved"));  // Trigger the preview
+    } else if (!toolPreview) {
+      toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth);
+    } else {
+      toolPreview.updatePosition(event.offsetX, event.offsetY);
+    }
   }
-}
 });
 
 // Handle mouseup event to complete drawing
 canvasElement.addEventListener("mouseup", () => {
-if (drawing && currentLine) {
-  drawing = false;
-  // Push the current line to the lines array when drawing is finished
-  lines.push(currentLine);
-  currentLine = null;  // Reset currentLine after storing it in lines
-  redo = [];  // Clear the redo stack when a new line is drawn
-  canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger full redraw
-}
+  if (drawing && currentLine) {
+    drawing = false;
+    // Push the current line to the lines array when drawing is finished
+    lines.push(currentLine);
+    currentLine = null;  // Reset currentLine after storing it in lines
+    redo = [];  // Clear the redo stack when a new line is drawn
+    canvasElement.dispatchEvent(new Event("drawing-changed")); // Trigger full redraw
+  }
 });
 
 // Redraw canvas when drawing or undo/redo is triggered
 canvasElement.addEventListener("drawing-changed", () => {
-render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
-lines.forEach((line) => {
-  line.display(render);  // Redraw each line or sticker on the canvas
-});
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
+  lines.forEach((line) => {
+    line.display(render);  // Redraw each line or sticker on the canvas
+  });
 
-// Draw tool preview or sticker preview if not drawing
-if (!drawing && toolPreview) {
-  toolPreview.draw(render);
-} else if (stickerPreview) {
-  stickerPreview.draw(render);
-}
+  // Draw tool preview or sticker preview if not drawing
+  if (!drawing && toolPreview) {
+    toolPreview.draw(render);
+  } else if (stickerPreview) {
+    stickerPreview.draw(render);
+  }
 });
 
 // Handle Clear Button Functionality
 clearButton.addEventListener("click", () => {
-render.clearRect(0, 0, canvasElement.width, canvasElement.height);
-lines = [];  // Clear all lines and stickers
-redo = [];   // Clear the redo stack
-canvasElement.dispatchEvent(new Event("drawing-changed"));
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  lines = [];  // Clear all lines and stickers
+  redo = [];   // Clear the redo stack
+  canvasElement.dispatchEvent(new Event("drawing-changed"));
 });
 
 // Handle Undo Button Functionality
 undoButton.addEventListener("click", () => {
-if (lines.length > 0) {
-  const lastStroke = lines.pop();  // Remove the last line or sticker
-  redo.push(lastStroke!);  // Add it to the redo stack
-  canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
-}
+  if (lines.length > 0) {
+    const lastStroke = lines.pop();  // Remove the last line or sticker
+    redo.push(lastStroke!);  // Add it to the redo stack
+    canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
+  }
 });
 
 // Handle Redo Button Functionality
 redoButton.addEventListener("click", () => {
-if (redo.length > 0) {
-  const redoStroke = redo.pop();  // Retrieve the last undone stroke or sticker
-  lines.push(redoStroke!);  // Add it back to the lines array
-  canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
-}
+  if (redo.length > 0) {
+    const redoStroke = redo.pop();  // Retrieve the last undone stroke or sticker
+    lines.push(redoStroke!);  // Add it back to the lines array
+    canvasElement.dispatchEvent(new Event("drawing-changed"));  // Trigger canvas redraw
+  }
 });
 
 // Handle Thin Button Functionality
 thinMarkerButton.addEventListener("click", () => {
-currentLineWidth = 1;  // Thin marker width
-thinMarkerButton.classList.add("selectedTool");
-thickMarkerButton.classList.remove("selectedTool");
+  currentLineWidth = 1;  // Thin marker width
+  thinMarkerButton.classList.add("selectedTool");
+  thickMarkerButton.classList.remove("selectedTool");
 });
 
 // Handle Thick Button Functionality
 thickMarkerButton.addEventListener("click", () => {
-currentLineWidth = 20;  // Thick marker width
-thickMarkerButton.classList.add("selectedTool");
-thinMarkerButton.classList.remove("selectedTool");
+  currentLineWidth = 20;  // Thick marker width
+  thickMarkerButton.classList.add("selectedTool");
+  thinMarkerButton.classList.remove("selectedTool");
 });
 
 // Redraw canvas when drawing or undo/redo is triggered
 canvasElement.addEventListener("drawing-changed", () => {
-render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
-lines.forEach((line) => {
-  line.display(render);  // Redraw each line or sticker on the canvas
+  render.clearRect(0, 0, canvasElement.width, canvasElement.height);  // Clear the canvas
+  lines.forEach((line) => {
+    line.display(render);  // Redraw each line or sticker on the canvas
+  });
+
+  // Draw tool preview or sticker preview if not drawing
+  if (!drawing && toolPreview) {
+    toolPreview.draw(render);
+  } else if (stickerPreview) {
+    stickerPreview.draw(render);
+  }
 });
 
-// Draw tool preview or sticker preview if not drawing
-if (!drawing && toolPreview) {
-  toolPreview.draw(render);
-} else if (stickerPreview) {
-  stickerPreview.draw(render);
-}
-});
