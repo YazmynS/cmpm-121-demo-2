@@ -19,7 +19,7 @@ let stickerPreview: StickerPreview | null = null;
 let toolPreview: ToolPreview | null = null;
 let lines: (MarkerLine | StickerCommand)[] = [];
 let redo: (MarkerLine | StickerCommand)[] = [];
-let currentColor = "#000000";
+let currentColor = "#000000"; // Default color is black
 
 // Get the canvas rendering context
 const canvasElement = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
@@ -63,7 +63,7 @@ function handleMouseMove(event: MouseEvent) {
     if (currentSticker && stickerPreview) {
       stickerPreview.updatePosition(event.offsetX, event.offsetY);
     } else if (!toolPreview) {
-      toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth);
+      toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth, currentColor);
     } else {
       toolPreview.updatePosition(event.offsetX, event.offsetY);
     }
@@ -171,12 +171,23 @@ function setMarkerWidth(width: number) {
   document.querySelectorAll("button").forEach(btn => btn.classList.remove("selectedTool"));
   const selectedButton = width === 1 ? document.getElementById("thinButton") : document.getElementById("thickButton");
   selectedButton?.classList.add("selectedTool");
+
+  // Update tool preview with selected size and current color
+  toolPreview = new ToolPreview(50, 50, currentLineWidth, currentColor);
+  canvasElement.dispatchEvent(new Event("drawing-changed"));
 }
 
 function setRandomColor() {
   const randomColor = getRandomColor();
   currentColor = randomColor;
+  
+  // Update tool preview with the new color and current line width
+  toolPreview = new ToolPreview(50, 50, currentLineWidth, currentColor);
+  
+  // Redraw the canvas to show the updated tool preview
+  canvasElement.dispatchEvent(new Event("drawing-changed"));
 }
+
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
@@ -244,11 +255,13 @@ class ToolPreview {
   private x: number;
   private y: number;
   private lineWidth: number;
+  private color: string; // Added color property to ToolPreview
 
-  constructor(x: number, y: number, lineWidth: number) {
+  constructor(x: number, y: number, lineWidth: number, color: string) {
     this.x = x;
     this.y = y;
     this.lineWidth = lineWidth;
+    this.color = color; // Initialize color in constructor
   }
 
   updatePosition(x: number, y: number) {
@@ -259,8 +272,10 @@ class ToolPreview {
   draw(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.lineWidth / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1; 
+    ctx.fillStyle = this.color; // Use the color for the preview fill
+    ctx.fill(); // Fill the circle with the current color
+    ctx.strokeStyle = "#000000"; // Black outline for the preview
+    ctx.lineWidth = 1; // Outline thickness
     ctx.stroke();
   }
 }
