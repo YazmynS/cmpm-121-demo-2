@@ -40,10 +40,58 @@ canvasElement.addEventListener("mousemove", handleMouseMove);
 canvasElement.addEventListener("mouseup", handleMouseUp);
 canvasElement.addEventListener("drawing-changed", () => redraw(render));
 
-// Functions
+// Interfaces
+interface MarkerLine {
+  points: { x: number; y: number }[];
+  lineWidth: number;
+  color: string;
+}
+
+interface StickerPreview {
+  x: number;
+  y: number;
+  sticker: string;
+}
+
+interface StickerCommand {
+  x: number;
+  y: number;
+  sticker: string;
+}
+
+interface ToolPreview {
+  x: number;
+  y: number;
+  lineWidth: number;
+  color: string;
+}
+
+// Functions to create objects (factory functions)
+
+function createMarkerLine(startX: number, startY: number, lineWidth: number, color: string): MarkerLine {
+  return {
+    points: [{ x: startX, y: startY }],
+    lineWidth,
+    color
+  };
+}
+
+function createStickerPreview(x: number, y: number, sticker: string): StickerPreview {
+  return { x, y, sticker };
+}
+
+function createStickerCommand(x: number, y: number, sticker: string): StickerCommand {
+  return { x, y, sticker };
+}
+
+function createToolPreview(x: number, y: number, lineWidth: number, color: string): ToolPreview {
+  return { x, y, lineWidth, color };
+}
+
+// Functions for handling drawing
 function handleMouseDown(event: MouseEvent) {
   if (currentSticker) {
-    const stickerCommand = new StickerCommand(event.offsetX, event.offsetY, currentSticker);
+    const stickerCommand = createStickerCommand(event.offsetX, event.offsetY, currentSticker);
     lines.push(stickerCommand);
     currentSticker = null;
     stickerPreview = null;
@@ -51,21 +99,21 @@ function handleMouseDown(event: MouseEvent) {
   } else {
     drawing = true;
     toolPreview = null;
-    currentLine = new MarkerLine(event.offsetX, event.offsetY, currentLineWidth, currentColor);
+    currentLine = createMarkerLine(event.offsetX, event.offsetY, currentLineWidth, currentColor);
   }
 }
 
 function handleMouseMove(event: MouseEvent) {
   if (drawing && currentLine) {
-    currentLine.drag(event.offsetX, event.offsetY);
+    currentLine.points.push({ x: event.offsetX, y: event.offsetY });
     canvasElement.dispatchEvent(new Event("drawing-changed"));
   } else if (!drawing) {
     if (currentSticker && stickerPreview) {
-      stickerPreview.updatePosition(event.offsetX, event.offsetY);
+      updateStickerPreviewPosition(stickerPreview, event.offsetX, event.offsetY);
     } else if (!toolPreview) {
-      toolPreview = new ToolPreview(event.offsetX, event.offsetY, currentLineWidth, currentColor);
+      toolPreview = createToolPreview(event.offsetX, event.offsetY, currentLineWidth, currentColor);
     } else {
-      toolPreview.updatePosition(event.offsetX, event.offsetY);
+      updateToolPreviewPosition(toolPreview, event.offsetX, event.offsetY);
     }
     canvasElement.dispatchEvent(new Event("tool-moved"));
   }
@@ -81,13 +129,15 @@ function handleMouseUp() {
   }
 }
 
+// Redraw the canvas
 function redraw(ctx: CanvasRenderingContext2D) {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  lines.forEach(line => line.display(ctx));
-  if (!drawing && toolPreview) toolPreview.draw(ctx);
-  if (!drawing && stickerPreview) stickerPreview.draw(ctx);
+  lines.forEach(line => displayLineOrSticker(line, ctx));
+  if (!drawing && toolPreview) drawToolPreview(toolPreview, ctx);
+  if (!drawing && stickerPreview) drawStickerPreview(stickerPreview, ctx);
 }
 
+// Button and UI Creation
 function createButtonContainer() {
   const container = createElement("div", { id: "buttonContainer" });
 
@@ -173,7 +223,7 @@ function setMarkerWidth(width: number) {
   selectedButton?.classList.add("selectedTool");
 
   // Update tool preview with selected size and current color
-  toolPreview = new ToolPreview(50, 50, currentLineWidth, currentColor);
+  toolPreview = createToolPreview(50, 50, currentLineWidth, currentColor);
   canvasElement.dispatchEvent(new Event("drawing-changed"));
 }
 
@@ -182,12 +232,11 @@ function setRandomColor() {
   currentColor = randomColor;
   
   // Update tool preview with the new color and current line width
-  toolPreview = new ToolPreview(50, 50, currentLineWidth, currentColor);
+  toolPreview = createToolPreview(50, 50, currentLineWidth, currentColor);
   
   // Redraw the canvas to show the updated tool preview
   canvasElement.dispatchEvent(new Event("drawing-changed"));
 }
-
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
@@ -200,7 +249,7 @@ function getRandomColor() {
 
 function selectSticker(emoji: string) {
   currentSticker = emoji;
-  stickerPreview = new StickerPreview(0, 0, currentSticker);
+  stickerPreview = createStickerPreview(0, 0, currentSticker);
 }
 
 function addCustomSticker() {
@@ -211,121 +260,66 @@ function addCustomSticker() {
 function exportCanvas() {
   const exportCanvas = createCanvas(EXPORT_CANVAS_SIZE, EXPORT_CANVAS_SIZE);
   const exportCtx = exportCanvas.getContext("2d")!;
-  exportCtx.scale(4, 4);
-  lines.forEach(line => line.display(exportCtx));
+  exportCtx.scale(4, 4); // Scale up the drawing to export at higher resolution
+  lines.forEach(line => displayLineOrSticker(line, exportCtx));
   const link = createElement("a", { href: exportCanvas.toDataURL("image/png"), download: "drawing.png" });
   link.click();
 }
 
-// MarkerLine Class
-class MarkerLine {
-  private points: { x: number; y: number }[] = [];
-  private lineWidth: number;
-  private color: string;
+// Functions to update or display objects
 
-  constructor(startX: number, startY: number, lineWidth: number, color: string) {
-    this.points.push({ x: startX, y: startY });
-    this.lineWidth = lineWidth;
-    this.color = color;
-  }
+function updateStickerPreviewPosition(preview: StickerPreview, x: number, y: number) {
+  preview.x = x;
+  preview.y = y;
+}
 
-  // Extend the line as the mouse is dragged
-  drag(x: number, y: number) {
-    this.points.push({ x, y });
-  }
+function drawStickerPreview(preview: StickerPreview, ctx: CanvasRenderingContext2D) {
+  ctx.font = '40px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(preview.sticker, preview.x, preview.y);
+}
 
-  // Display the line on the canvas
-  display(ctx: CanvasRenderingContext2D) {
-    if (this.points.length < 2) return;
-    ctx.lineWidth = this.lineWidth;
-    ctx.strokeStyle = this.color;
-    ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
+function updateToolPreviewPosition(preview: ToolPreview, x: number, y: number) {
+  preview.x = x;
+  preview.y = y;
+}
 
-    for (let i = 1; i < this.points.length; i++) {
-      ctx.lineTo(this.points[i].x, this.points[i].y);
-    }
+function drawToolPreview(preview: ToolPreview, ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.arc(preview.x, preview.y, preview.lineWidth / 2, 0, Math.PI * 2);
+  ctx.fillStyle = preview.color;
+  ctx.fill();
+  ctx.strokeStyle = "#000000"; // Black outline for tool preview
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
 
-    ctx.stroke();
+function displayLineOrSticker(item: MarkerLine | StickerCommand, ctx: CanvasRenderingContext2D) {
+  if ("points" in item) {
+    displayLine(item, ctx); // It's a MarkerLine
+  } else {
+    displayStickerCommand(item, ctx); // It's a StickerCommand
   }
 }
 
-// ToolPreview Class
-class ToolPreview {
-  private x: number;
-  private y: number;
-  private lineWidth: number;
-  private color: string; // Added color property to ToolPreview
+function displayLine(line: MarkerLine, ctx: CanvasRenderingContext2D) {
+  if (line.points.length < 2) return;
+  ctx.lineWidth = line.lineWidth;
+  ctx.strokeStyle = line.color;
+  ctx.beginPath();
+  ctx.moveTo(line.points[0].x, line.points[0].y);
 
-  constructor(x: number, y: number, lineWidth: number, color: string) {
-    this.x = x;
-    this.y = y;
-    this.lineWidth = lineWidth;
-    this.color = color; // Initialize color in constructor
+  for (let i = 1; i < line.points.length; i++) {
+    ctx.lineTo(line.points[i].x, line.points[i].y);
   }
 
-  updatePosition(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.lineWidth / 2, 0, Math.PI * 2);
-    ctx.fillStyle = this.color; // Use the color for the preview fill
-    ctx.fill(); // Fill the circle with the current color
-    ctx.strokeStyle = "#000000"; // Black outline for the preview
-    ctx.lineWidth = 1; // Outline thickness
-    ctx.stroke();
-  }
+  ctx.stroke();
 }
 
-// StickerPreview Class
-class StickerPreview {
-  private x: number;
-  private y: number;
-  private sticker: string;
-
-  constructor(x: number, y: number, sticker: string) {
-    this.x = x;
-    this.y = y;
-    this.sticker = sticker;
-  }
-
-  updatePosition(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.font = '40px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.sticker, this.x, this.y);
-  }
-}
-
-// StickerCommand Class
-class StickerCommand {
-  private x: number;
-  private y: number;
-  private sticker: string;
-
-  constructor(x: number, y: number, sticker: string) {
-    this.x = x;
-    this.y = y;
-    this.sticker = sticker;
-  }
-
-  drag(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-
-  display(ctx: CanvasRenderingContext2D) {
-    ctx.font = '40px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.sticker, this.x, this.y);
-  }
+function displayStickerCommand(command: StickerCommand, ctx: CanvasRenderingContext2D) {
+  ctx.font = '40px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(command.sticker, command.x, command.y);
 }
