@@ -19,6 +19,7 @@ let stickerPreview: StickerPreview | null = null;
 let toolPreview: ToolPreview | null = null;
 let lines: (MarkerLine | StickerCommand)[] = [];
 let redo: (MarkerLine | StickerCommand)[] = [];
+let currentColor = "#000000";
 
 // Get the canvas rendering context
 const canvasElement = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
@@ -40,7 +41,6 @@ canvasElement.addEventListener("mouseup", handleMouseUp);
 canvasElement.addEventListener("drawing-changed", () => redraw(render));
 
 // Functions
-
 function handleMouseDown(event: MouseEvent) {
   if (currentSticker) {
     const stickerCommand = new StickerCommand(event.offsetX, event.offsetY, currentSticker);
@@ -51,7 +51,7 @@ function handleMouseDown(event: MouseEvent) {
   } else {
     drawing = true;
     toolPreview = null;
-    currentLine = new MarkerLine(event.offsetX, event.offsetY, currentLineWidth);
+    currentLine = new MarkerLine(event.offsetX, event.offsetY, currentLineWidth, currentColor);
   }
 }
 
@@ -91,12 +91,13 @@ function redraw(ctx: CanvasRenderingContext2D) {
 function createButtonContainer() {
   const container = createElement("div", { id: "buttonContainer" });
 
-  // First group of buttons (Clear, Undo, Redo)
+  // First group of buttons (Clear, Undo, Redo, Random Color)
   const primaryButtonContainer = createElement("div", { id: "primaryButtonContainer" });
   primaryButtonContainer.append(
     createButton("Clear", clearCanvas, "clearButton"),
     createButton("Undo", undo, "undoButton"),
-    createButton("Redo", redoAction, "redoButton")
+    createButton("Redo", redoAction, "redoButton"),
+    createButton("Color", setRandomColor, "colorButton")
   );
 
   // Second group of buttons (Export, Thin, Thick)
@@ -107,7 +108,6 @@ function createButtonContainer() {
     createButton("Thick Marker", () => setMarkerWidth(10), "thickButton")
   );
 
-  // Append both groups to the main container
   container.append(primaryButtonContainer, secondaryButtonContainer);
   return container;
 }
@@ -122,7 +122,6 @@ function createStickerContainer() {
 }
 
 // Helper Functions
-
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement("canvas");
   canvas.id = "gameCanvas";
@@ -174,6 +173,20 @@ function setMarkerWidth(width: number) {
   selectedButton?.classList.add("selectedTool");
 }
 
+function setRandomColor() {
+  const randomColor = getRandomColor();
+  currentColor = randomColor;
+}
+
+function getRandomColor() {
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
 function selectSticker(emoji: string) {
   currentSticker = emoji;
   stickerPreview = new StickerPreview(0, 0, currentSticker);
@@ -197,10 +210,12 @@ function exportCanvas() {
 class MarkerLine {
   private points: { x: number; y: number }[] = [];
   private lineWidth: number;
+  private color: string;
 
-  constructor(startX: number, startY: number, lineWidth: number) {
+  constructor(startX: number, startY: number, lineWidth: number, color: string) {
     this.points.push({ x: startX, y: startY });
     this.lineWidth = lineWidth;
+    this.color = color;
   }
 
   // Extend the line as the mouse is dragged
@@ -212,7 +227,7 @@ class MarkerLine {
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length < 2) return;
     ctx.lineWidth = this.lineWidth;
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = this.color;
     ctx.beginPath();
     ctx.moveTo(this.points[0].x, this.points[0].y);
 
@@ -244,8 +259,8 @@ class ToolPreview {
   draw(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.lineWidth / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = "#ffffff"; // White outline for the preview
-    ctx.lineWidth = 1; // The outline for the circle
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1; 
     ctx.stroke();
   }
 }
