@@ -7,7 +7,7 @@ const EXPORT_CANVAS_SIZE = 1024;
 const STICKERS = [
   { id: "bearButton", emoji: "🐻" },
   { id: "catButton", emoji: "🐱" },
-  { id: "unicornButton", emoji: "🦄" }
+  { id: "unicornButton", emoji: "🦄" },
 ];
 
 const canvasElement = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
@@ -34,12 +34,14 @@ function initializeApp() {
 }
 
 function setupDOM() {
-  document.querySelector<HTMLDivElement>("#app")!.append(
-    createElement("h1", { textContent: APP_NAME }),
-    canvasElement,
-    createButtonContainer(),
-    createStickerContainer()
-  );
+  document
+    .querySelector<HTMLDivElement>("#app")!
+    .append(
+      createElement("h1", { textContent: APP_NAME }),
+      canvasElement,
+      createButtonContainer(),
+      createStickerContainer()
+    );
 }
 
 //Handle Drawing Functionality
@@ -77,54 +79,71 @@ interface ToolPreview {
 }
 
 // Create Objects
-function createMarkerLine(startX: number, startY: number, lineWidth: number, color: string): MarkerLine {
-  return {
+function createObject<T>(properties: T): T {
+  return { ...properties };
+}
+
+function createMarkerLine(
+  startX: number,
+  startY: number,
+  lineWidth: number,
+  color: string
+): MarkerLine {
+  return createObject<MarkerLine>({
     points: [{ x: startX, y: startY }],
     lineWidth,
-    color
-  };
+    color,
+  });
 }
 
-function createStickerPreview(x: number, y: number, sticker: string): StickerPreview {
-  return { x, y, sticker };
+function createStickerPreview(
+  x: number,
+  y: number,
+  sticker: string
+): StickerPreview {
+  return createObject<StickerPreview>({ x, y, sticker });
 }
 
-function createStickerCommand(x: number, y: number, sticker: string): StickerCommand {
-  return { x, y, sticker };
+function createStickerCommand(
+  x: number,
+  y: number,
+  sticker: string
+): StickerCommand {
+  return createObject<StickerCommand>({ x, y, sticker });
 }
 
-function createToolPreview(x: number, y: number, lineWidth: number, color: string): ToolPreview {
-  return { x, y, lineWidth, color };
+function createToolPreview(
+  x: number,
+  y: number,
+  lineWidth: number,
+  color: string
+): ToolPreview {
+  return createObject<ToolPreview>({ x, y, lineWidth, color });
 }
 
 // Handle Mouse Events
 function handleMouseDown(event: MouseEvent) {
-  if (currentSticker) {
-    addStickerToCanvas(event);
-  } else {
-    startDrawing(event);
-  }
+  currentSticker ? addStickerToCanvas(event) : startDrawing(event);
 }
 
 function handleMouseMove(event: MouseEvent) {
-  if (drawing && currentLine) {
-    addPointToCurrentLine(event);
-  } else {
-    updatePreviews(event);
-  }
+  drawing && currentLine ? addPointToCurrentLine(event) : updatePreviews(event);
 }
 
 function handleMouseUp() {
-  if (drawing && currentLine) {
-    finishDrawing();
-  }
+  if (drawing && currentLine) finishDrawing();
 }
 
 // Drawing Functions
 function startDrawing(event: MouseEvent) {
   drawing = true;
   toolPreview = null;
-  currentLine = createMarkerLine(event.offsetX, event.offsetY, currentLineWidth, currentColor);
+  currentLine = createMarkerLine(
+    event.offsetX,
+    event.offsetY,
+    currentLineWidth,
+    currentColor
+  );
 }
 
 function addPointToCurrentLine(event: MouseEvent) {
@@ -141,7 +160,11 @@ function finishDrawing() {
 }
 
 function addStickerToCanvas(event: MouseEvent) {
-  const stickerCommand = createStickerCommand(event.offsetX, event.offsetY, currentSticker!);
+  const stickerCommand = createStickerCommand(
+    event.offsetX,
+    event.offsetY,
+    currentSticker!
+  );
   lines.push(stickerCommand);
   clearStickerPreview();
   triggerRedraw();
@@ -152,7 +175,12 @@ function updatePreviews(event: MouseEvent) {
   if (currentSticker && stickerPreview) {
     updateStickerPreviewPosition(stickerPreview, event.offsetX, event.offsetY);
   } else if (!toolPreview) {
-    toolPreview = createToolPreview(event.offsetX, event.offsetY, currentLineWidth, currentColor);
+    toolPreview = createToolPreview(
+      event.offsetX,
+      event.offsetY,
+      currentLineWidth,
+      currentColor
+    );
   } else {
     updateToolPreviewPosition(toolPreview, event.offsetX, event.offsetY);
   }
@@ -171,7 +199,7 @@ function clearCanvas(ctx: CanvasRenderingContext2D) {
 }
 
 function renderLines(ctx: CanvasRenderingContext2D) {
-  lines.forEach(line => displayLineOrSticker(line, ctx));
+  lines.forEach((line) => displayLineOrSticker(line, ctx));
 }
 
 function renderPreviews(ctx: CanvasRenderingContext2D) {
@@ -189,14 +217,20 @@ function drawToolPreview(preview: ToolPreview, ctx: CanvasRenderingContext2D) {
   ctx.stroke();
 }
 
-function drawStickerPreview(preview: StickerPreview, ctx: CanvasRenderingContext2D) {
-  ctx.font = '40px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+function drawStickerPreview(
+  preview: StickerPreview,
+  ctx: CanvasRenderingContext2D
+) {
+  ctx.font = "40px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillText(preview.sticker, preview.x, preview.y);
 }
 
-function displayLineOrSticker(item: MarkerLine | StickerCommand, ctx: CanvasRenderingContext2D) {
+function displayLineOrSticker(
+  item: MarkerLine | StickerCommand,
+  ctx: CanvasRenderingContext2D
+) {
   if (isMarkerLine(item)) {
     displayLine(item, ctx);
   } else {
@@ -218,10 +252,13 @@ function displayLine(line: MarkerLine, ctx: CanvasRenderingContext2D) {
   ctx.stroke();
 }
 
-function displayStickerCommand(command: StickerCommand, ctx: CanvasRenderingContext2D) {
-  ctx.font = '40px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+function displayStickerCommand(
+  command: StickerCommand,
+  ctx: CanvasRenderingContext2D
+) {
+  ctx.font = "40px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillText(command.sticker, command.x, command.y);
 }
 
@@ -239,7 +276,11 @@ function clearStickerPreview() {
   stickerPreview = null;
 }
 
-function updateStickerPreviewPosition(preview: StickerPreview, x: number, y: number) {
+function updateStickerPreviewPosition(
+  preview: StickerPreview,
+  x: number,
+  y: number
+) {
   preview.x = x;
   preview.y = y;
 }
@@ -253,7 +294,9 @@ function updateToolPreviewPosition(preview: ToolPreview, x: number, y: number) {
 function createButtonContainer() {
   const container = createElement("div", { id: "buttonContainer" });
 
-  const primaryButtonContainer = createElement("div", { id: "primaryButtonContainer" });
+  const primaryButtonContainer = createElement("div", {
+    id: "primaryButtonContainer",
+  });
   primaryButtonContainer.append(
     createButton("Clear", clearCanvasAction, "clearButton"),
     createButton("Undo", undo, "undoButton"),
@@ -261,7 +304,9 @@ function createButtonContainer() {
     createButton("Color", setRandomColor, "colorButton")
   );
 
-  const secondaryButtonContainer = createElement("div", { id: "secondaryButtonContainer" });
+  const secondaryButtonContainer = createElement("div", {
+    id: "secondaryButtonContainer",
+  });
   secondaryButtonContainer.append(
     createButton("Export", exportCanvas, "exportButton"),
     createButton("Thin Marker", () => setMarkerWidth(5), "thinButton"),
@@ -274,10 +319,18 @@ function createButtonContainer() {
 
 function createStickerContainer() {
   const container = createElement("div", { id: "stickerContainer" });
-  STICKERS.forEach(sticker => {
-    container.append(createButton(sticker.emoji, () => selectSticker(sticker.emoji), sticker.id));
+  STICKERS.forEach((sticker) => {
+    container.append(
+      createButton(
+        sticker.emoji,
+        () => selectSticker(sticker.emoji),
+        sticker.id
+      )
+    );
   });
-  container.append(createButton("Add Custom Sticker", addCustomSticker, "customButton"));
+  container.append(
+    createButton("Add Custom Sticker", addCustomSticker, "customButton")
+  );
   return container;
 }
 
@@ -309,8 +362,13 @@ function setMarkerWidth(width: number) {
 }
 
 function highlightSelectedTool(width: number) {
-  document.querySelectorAll("button").forEach(btn => btn.classList.remove("selectedTool"));
-  const selectedButton = width === 1 ? document.getElementById("thinButton") : document.getElementById("thickButton");
+  document
+    .querySelectorAll("button")
+    .forEach((btn) => btn.classList.remove("selectedTool"));
+  const selectedButton =
+    width === 1
+      ? document.getElementById("thinButton")
+      : document.getElementById("thickButton");
   selectedButton?.classList.add("selectedTool");
 }
 
@@ -343,7 +401,10 @@ function exportCanvas() {
 }
 
 function downloadCanvas(canvas: HTMLCanvasElement) {
-  const link = createElement("a", { href: canvas.toDataURL("image/png"), download: "drawing.png" });
+  const link = createElement("a", {
+    href: canvas.toDataURL("image/png"),
+    download: "drawing.png",
+  });
   link.click();
 }
 
