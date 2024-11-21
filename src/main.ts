@@ -24,6 +24,8 @@ let lines: (MarkerLine | StickerCommand)[] = [];
 let redo: (MarkerLine | StickerCommand)[] = [];
 let currentColor = "#000000";
 
+let currentCursor: StickerPreview | null = null;
+
 // App Initialization
 initializeApp();
 
@@ -50,6 +52,10 @@ function setupEventListeners() {
   canvasElement.addEventListener("mousemove", handleMouseMove);
   canvasElement.addEventListener("mouseup", handleMouseUp);
   canvasElement.addEventListener("drawing-changed", () => redraw(render));
+
+  //Sticker Preview cursor
+  canvasElement.addEventListener("mouseenter", handleMouseEnter);
+
 }
 
 // Create Interfaces
@@ -77,6 +83,8 @@ interface ToolPreview {
   lineWidth: number;
   color: string;
 }
+
+
 
 // Create Objects
 function createObject<T>(properties: T): T {
@@ -134,6 +142,10 @@ function handleMouseUp() {
   if (drawing && currentLine) finishDrawing();
 }
 
+function handleMouseEnter(event: MouseEvent){
+  if(!drawing && currentSticker) updateCursor(event);
+}
+
 // Drawing Functions
 function startDrawing(event: MouseEvent) {
   drawing = true;
@@ -165,6 +177,9 @@ function addStickerToCanvas(event: MouseEvent) {
     event.offsetY,
     currentSticker!
   );
+  if(currentCursor){
+    currentCursor = null;
+  }
   lines.push(stickerCommand);
   clearStickerPreview();
   triggerRedraw();
@@ -172,6 +187,13 @@ function addStickerToCanvas(event: MouseEvent) {
 
 // Create Preview
 function updatePreviews(event: MouseEvent) {
+  if(currentCursor && stickerPreview){
+    console.log("there is a current cursor");
+    updateStickerPreviewPosition(currentCursor, event.offsetX, event.offsetY);
+    redraw(render);
+    drawStickerPreview(currentCursor, render);
+
+  }
   if (currentSticker && stickerPreview) {
     updateStickerPreviewPosition(stickerPreview, event.offsetX, event.offsetY);
   } else if (!toolPreview) {
@@ -186,6 +208,14 @@ function updatePreviews(event: MouseEvent) {
   }
   canvasElement.dispatchEvent(new Event("tool-moved"));
 }
+
+//Change Cursor
+function updateCursor(event: MouseEvent){
+  currentCursor = createStickerPreview(event.offsetX, event.offsetY, currentSticker!);
+}
+
+
+
 
 // Handle Rendering
 function redraw(ctx: CanvasRenderingContext2D) {
@@ -203,6 +233,8 @@ function renderLines(ctx: CanvasRenderingContext2D) {
 }
 
 function renderPreviews(ctx: CanvasRenderingContext2D) {
+  console.log("rendering Previews");
+  console.log(stickerPreview);
   if (!drawing && toolPreview) drawToolPreview(toolPreview, ctx);
   if (!drawing && stickerPreview) drawStickerPreview(stickerPreview, ctx);
 }
@@ -225,6 +257,7 @@ function drawStickerPreview(
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(preview.sticker, preview.x, preview.y);
+  console.log("drawing sticker preview");
 }
 
 function displayLineOrSticker(
@@ -356,6 +389,7 @@ function redoAction() {
 }
 
 function setMarkerWidth(width: number) {
+  clearStickerPreview();
   currentLineWidth = width;
   highlightSelectedTool(width);
   updateToolPreview();
